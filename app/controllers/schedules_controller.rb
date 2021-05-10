@@ -18,7 +18,7 @@ class SchedulesController < ApplicationController
   # GET /schedules/1 or /schedules/1.json
   def show
     json_success_response(
-      ScheduleSerializer.new()
+      ScheduleSerializer.new(params)
     )
   end
 
