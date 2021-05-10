@@ -7,6 +7,7 @@ ruby '3.0.0'
 gem 'rails', '~> 6.1.3', '>= 6.1.3.2'
 # Use sqlite3 as the database for Active Record
 gem 'dry-validation'
+gem 'active_model_serializers'
 # gem 'sqlite3', '~> 1.4'
 gem 'pg', '~>1.1.3'
 # Use Puma as the app server
