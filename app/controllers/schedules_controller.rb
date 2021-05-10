@@ -3,20 +3,23 @@ class SchedulesController < ApplicationController
 
   # GET /schedules or /schedules.json
   def index
-    @schedules = Schedule.all
+    result = ScheduleIndexSchema.call(params)
+
+    if result.failure?
+      return json_error_response(result.messages, :bad_request)
+    end
+
+    json_pagination(
+      ScheduleSearch.new(),
+      ScheduleSerializer
+    )
   end
 
   # GET /schedules/1 or /schedules/1.json
   def show
-  end
-
-  # GET /schedules/new
-  def new
-    @schedule = Schedule.new
-  end
-
-  # GET /schedules/1/edit
-  def edit
+    json_success_response(
+      ScheduleSerializer.new()
+    )
   end
 
   # POST /schedules or /schedules.json
