@@ -1,7 +1,6 @@
 class SchedulesController < ApplicationController
   before_action :set_schedule, only: %i[ show edit update destroy ]
 
-  # GET /schedules or /schedules.json
   def index
     result = ScheduleIndexSchema.call(params)
 
@@ -15,48 +14,74 @@ class SchedulesController < ApplicationController
     )
   end
 
-  # GET /schedules/1 or /schedules/1.json
   def show
     json_success_response(
       ScheduleSerializer.new(params)
     )
   end
 
-  # POST /schedules or /schedules.json
   def create
-    @schedule = Schedule.new(schedule_params)
-
-    respond_to do |format|
-      if @schedule.save
-        format.html { redirect_to @schedule, notice: "Schedule was successfully created." }
-        format.json { render :show, status: :created, location: @schedule }
-      else
-        format.html { render :new, status: :unprocessable_entity }
-        format.json { render json: @schedule.errors, status: :unprocessable_entity }
-      end
+    room = ScheduleSearch.room_for_user(params[:room])
+    if room.nil?
+      json_error_response("Room is not available", :bad_request)
+      return
     end
+
+    result = ScheduleCreateSchema.call(params)
+    if result.failure?
+      return json_error_response(result.messages, :bad_request)
+    end
+
+    operation = Operations::Schedule::Create.new(user, room)
+    result = operation.call(result)
+
+    if result.failure?
+      return json_error_response(result.translated_errors, :unprocessable_entity)
+    end
+
+    new_schedule = result.data[:new_schedule]
+    json_success_response(ScheduleSerializer.new(new_schedule), :created)
   end
 
-  # PATCH/PUT /schedules/1 or /schedules/1.json
   def update
-    respond_to do |format|
-      if @schedule.update(schedule_params)
-        format.html { redirect_to @schedule, notice: "Schedule was successfully updated." }
-        format.json { render :show, status: :ok, location: @schedule }
-      else
-        format.html { render :edit, status: :unprocessable_entity }
-        format.json { render json: @schedule.errors, status: :unprocessable_entity }
-      end
+    schedule = ScheduleSearch.existent_schedule(params)
+
+    if schedule.nil?
+      return json_error_response("Not exist an existent schedule", :wip)
     end
+
+    result = ScheduleUpdateSchema.call(params)
+    if result.failure?
+      return json_error_response(result.messages, :bad_request)
+    end
+
+    operation = Operations::Schedule::Update.new(user, room)
+    result = operation.call(result)
+
+    if result.failure?
+      return json_error_response(result.translated_errors, :unprocessable_entity)
+    end
+
+    new_schedule = result.data[:updated_schedule]
+    json_success_response(ScheduleSerializer.new(new_schedule), :updated)
   end
 
-  # DELETE /schedules/1 or /schedules/1.json
   def destroy
-    @schedule.destroy
-    respond_to do |format|
-      format.html { redirect_to schedules_url, notice: "Schedule was successfully destroyed." }
-      format.json { head :no_content }
+    schedule = ScheduleSearch.existent_schedule(params)
+
+    if schedule.nil?
+      return json_error_response("Not exist an existent schedule to cancel", :wip)
     end
+
+    operation = Operations::Schedule::Cancel.new(user, room)
+    result = operation.call(result)
+
+    if result.failure?
+      return json_error_response(result.translated_errors, :unprocessable_entity)
+    end
+
+    new_schedule = result.data[:updated_schedule]
+    json_success_response(ScheduleSerializer.new(new_schedule), :updated)
   end
 
   private
