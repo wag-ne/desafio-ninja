@@ -1,15 +1,16 @@
 class SchedulesController < ApplicationController
   before_action :schedule, only: %i[ show edit update destroy ]
+  skip_before_action :verify_authenticity_token
 
   def index
-    result = ScheduleIndexSchema.call(params)
+    # result = ScheduleIndexSchema.call(params)
 
-    if result.failure?
-      return json_error_response(result.messages, :bad_request)
-    end
+    # if result.failure?
+    #   return json_error_response(result.messages, :bad_request)
+    # end
 
     json_pagination(
-      ScheduleSearch.new(),
+      ScheduleSearch.new.search,
       ScheduleSerializer
     )
   end
@@ -21,9 +22,10 @@ class SchedulesController < ApplicationController
   end
 
   def create
-    room = ScheduleSearch.room_for_user(params[:room])
-    if room.nil?
-      json_error_response("Room is not available", :bad_request)
+    time = ScheduleSearch.validate_time(params)
+    binding.pry
+    if time.nil?
+      json_error_response("Please, use valid time", :bad_request)
       return
     end
 
@@ -67,27 +69,22 @@ class SchedulesController < ApplicationController
   end
 
   def destroy
-    schedule = ScheduleSearch.existent_schedule(params)
-
-    if schedule.nil?
-      return json_error_response("Not exist an existent schedule to cancel", :wip)
+    if @schedule.nil?
+      return json_error_response("Not exist an existent schedule to cancel")
     end
 
-    operation = Operations::Schedule::Cancel.new(user, room)
-    result = operation.call(result)
-
-    if result.failure?
-      return json_error_response(result.translated_errors, :unprocessable_entity)
-    end
-
-    new_schedule = result.data[:updated_schedule]
-    json_success_response(ScheduleSerializer.new(new_schedule), :updated)
+    @schedule.destroy
+    json_success_response(ScheduleSerializer.new(@schedule))
   end
 
   private
 
     def schedule
-      @schedule ||= Schedule.find(params[:id])
+      @schedule ||= Schedule.find_by(id: params[:id])
+    end
+
+    def total_count
+
     end
 
     def schedule_params
