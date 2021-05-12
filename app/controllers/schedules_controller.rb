@@ -22,14 +22,14 @@ class SchedulesController < ApplicationController
   end
 
   def create
-    time = ScheduleSearch.validate_time(params)
-    binding.pry
+    time = ScheduleSearch.new.validate_time(params)
+
     if time.nil?
-      json_error_response("Please, use valid time", :bad_request)
+      json_error_response("Please, use a valid time", :bad_request)
       return
     end
-
-    result = ScheduleCreateSchema.call(params)
+    binding.pry
+    result = ScheduleSchema.call(params)
     if result.failure?
       return json_error_response(result.messages, :bad_request)
     end
@@ -46,6 +46,7 @@ class SchedulesController < ApplicationController
   end
 
   def update
+    binding.pry
     schedule = ScheduleSearch.existent_schedule(params)
 
     if schedule.nil?
@@ -79,15 +80,11 @@ class SchedulesController < ApplicationController
 
   private
 
-    def schedule
-      @schedule ||= Schedule.find_by(id: params[:id])
-    end
+  def schedule
+    @schedule ||= Schedule.find_by(id: params[:id])
+  end
 
-    def total_count
-
-    end
-
-    def schedule_params
-      params.require(:schedule).permit(:room_id, :status, :start_at, :expires_at)
-    end
+  def schedule_params
+    params.require(:schedule).permit(:room_id, :status, :start_at, :expires_at)
+  end
 end
