@@ -1,5 +1,5 @@
 class SchedulesController < ApplicationController
-  before_action :set_schedule, only: %i[ show edit update destroy ]
+  before_action :schedule, only: %i[ show edit update destroy ]
 
   def index
     result = ScheduleIndexSchema.call(params)
@@ -16,7 +16,7 @@ class SchedulesController < ApplicationController
 
   def show
     json_success_response(
-      ScheduleSerializer.new(params)
+      ScheduleSerializer.new(schedule)
     )
   end
 
@@ -85,12 +85,11 @@ class SchedulesController < ApplicationController
   end
 
   private
-    # Use callbacks to share common setup or constraints between actions.
-    def set_schedule
-      @schedule = Schedule.find(params[:id])
+
+    def schedule
+      @schedule ||= Schedule.find(params[:id])
     end
 
-    # Only allow a list of trusted parameters through.
     def schedule_params
       params.require(:schedule).permit(:room_id, :status, :start_at, :expires_at)
     end
